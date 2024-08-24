@@ -3,13 +3,44 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+
+  "scripts": {
+    "start": "concurrently 'yarn:*:watch'",
+    "run": "node build/index.js",
+    "run:watch": "nodemon --watch build build/index.js",
+    "run:release": "NODE_ENV=production node build/index.js",
+    "tsoa": "tsoa spec-and-routes -c tsoa.json",
+    "tsoa:watch": "nodemon --watch 'src/**/*.controller.ts' --watch 'src/**/*.types.ts' --watch tsoa.json -e ts,json --exec 'yarn run tsoa'",
+    "bundle": "webpack --color --mode=development",
+    "bundle:watch": "yarn run bundle --watch",
+    "build": "yarn run tsoa && yarn run bundle --progress",
+    "build:release": "yarn run tsoa && webpack --progress --color --mode=production"
+    
+  },
+
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "multer": "^1.4.5-lts.1",
+    "swagger-ui-express": "^5.0.1",
     "tsoa": "^6.4.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.5.0",
-    "typescript": "^5.5.4"
+    "@types/swagger-ui-express": "^4.1.6",
+    "concurrently": "^8.2.2",
+    "fork-ts-checker-webpack-plugin": "^9.0.2",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "ts-loader": "^9.2.5",
+    "webpack": "^5.53.0",
+    "webpack-cli": "^4.8.0",
+    "webpack-node-externals": "^3.0.0"
   }
 }

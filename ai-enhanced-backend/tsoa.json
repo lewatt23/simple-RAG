@@ -1,12 +1,27 @@
 {
-  "entryFile": "src/app.ts",
+  "entryFile": "src/index.ts",
   "noImplicitAdditionalProperties": "throw-on-extras",
-  "controllerPathGlobs": ["src/**/*Controller.ts"],
+  "controllerPathGlobs": ["./src/**/*Controller.ts"],
+
+
+  "ignore": [
+    "**/node_modules/**"
+  ],
+
   "spec": {
-    "outputDirectory": "build",
-    "specVersion": 3
+    "specVersion": 3,
+    "host": null,
+    "outputDirectory": "./src/routes"
   },
   "routes": {
-    "routesDir": "build"
+    "basePath": "",
+    "routesDir": "./src/routes",
+    "middleware": "express"
+  },
+
+  "multerOpts": {
+    "limits": {
+      "fileSize": 314572800
+    }
   }
 }
