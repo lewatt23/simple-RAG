@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
-
   "scripts": {
     "start": "concurrently 'yarn:*:watch'",
     "run": "node build/index.js",
@@ -15,15 +14,18 @@
     "bundle:watch": "yarn run bundle --watch",
     "build": "yarn run tsoa && yarn run bundle --progress",
     "build:release": "yarn run tsoa && webpack --progress --color --mode=production"
-    
   },
-
   "dependencies": {
+    "@langchain/community": "^0.2.31",
+    "@langchain/core": "^0.2.28",
+    "@langchain/openai": "^0.2.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "helmet": "^7.1.0",
+    "langchain": "^0.2.17",
     "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
     "swagger-ui-express": "^5.0.1",
     "tsoa": "^6.4.0"
   },
@@ -36,11 +38,14 @@
     "concurrently": "^8.2.2",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "nodemon": "^3.1.4",
+    "ts-loader": "^9.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
-    "ts-loader": "^9.2.5",
     "webpack": "^5.53.0",
     "webpack-cli": "^4.8.0",
     "webpack-node-externals": "^3.0.0"
+  },
+  "resolutions": {
+    "@langchain/core": "0.1.5"
   }
 }

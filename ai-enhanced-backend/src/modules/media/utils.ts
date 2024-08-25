@@ -22,7 +22,6 @@ const MEDIA_PATH = path.join(process.cwd(), 'media');
 export const filePath = (filename: any) => path.join(EMediaTypes.Doc, `${Date.now()}${filename}`);
 
 export const saveFile = async (filename: string, file: any): Promise<any> => {
-  console.log('filename', filename);
   // ensure directories
   await mkDirPromised(path.join(MEDIA_PATH, EMediaTypes.Doc), { recursive: true });
 
@@ -30,8 +29,6 @@ export const saveFile = async (filename: string, file: any): Promise<any> => {
   const promises = [];
 
   const rootFilePath = path.join(MEDIA_PATH, filePath(filename));
-
-  console.log('rootFilePath', rootFilePath);
 
   // Save the file to disk
   promises.push(writeFiler(rootFilePath, file.buffer));

@@ -18,6 +18,9 @@ import {
 } from 'tsoa';
 import { saveFile } from '../media/utils';
 
+import 'pdf-parse'; // Peer dep
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+
 /**
  * Chat
  */
@@ -30,6 +33,15 @@ export class ChatController extends Controller {
     console.log('File uploaded:', file.originalname);
 
     const filePath = await saveFile(file.originalname, file);
+
+    const loader = new PDFLoader(filePath);
+
+    const docs = await loader.load();
+
+    console.log(docs.length);
+
+    console.log(docs[0].pageContent.slice(0, 100));
+    console.log(docs[0].metadata);
 
     return `File ${file.originalname} uploaded successfully.`;
   }
