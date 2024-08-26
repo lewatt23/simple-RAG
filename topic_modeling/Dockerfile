@@ -21,8 +21,8 @@ EXPOSE 80
 
 
 
-ENV PINECONE_API_KEY=96a3c850-a1b2-40b2-b3de-4667f855b638
-ENV PINECONE_INDEX_NAME=test2
+ENV PINECONE_API_KEY=
+ENV PINECONE_INDEX_NAME=
 
 # Run the script when the container launches
 CMD ["python", "topic_modeling.py"]

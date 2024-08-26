@@ -95,7 +95,7 @@ export default function Component() {
 
   const handleSendMessage = async () => {
     if (inputMessage.trim() !== "") {
-      const newMessages = [
+      const newMessages: Message[] = [
         ...messages,
         { role: "user", content: inputMessage },
       ];
@@ -123,7 +123,7 @@ export default function Component() {
             return { text, confidence };
           });
 
-          console.log("Processed chunks:", processedChunks);
+          // console.log("Processed chunks:", processedChunks);
           // Assuming the API response contains the answer and document chunks
           setMessages((prev) => [
             ...prev,

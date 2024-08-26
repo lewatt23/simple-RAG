@@ -1,0 +1,26 @@
+version: "3"
+services:
+  frontend:
+    container_name: ai-enhanced-frontend
+    build:
+      context: ./ai-enhanced-frontend
+      dockerfile: Dockerfile.frontend
+      target: production
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_ENV=production
+
+  backend:
+    container_name: ai-enhanced-backend
+    build:
+      context: ./ai-enhanced-backend
+      dockerfile: Dockerfile.backend
+    restart: always
+    ports:
+      - 4040:4040
+    volumes:
+      - ./topic_modeling/media:/var/www/html/back/media
+    environment:
+      - NODE_ENV=production

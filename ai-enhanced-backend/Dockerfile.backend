@@ -1,0 +1,29 @@
+# Use the official Node.js image from Docker Hub
+FROM node:latest
+
+# Set the working directory inside the container
+WORKDIR /var/www/html/back
+
+# Copy the entire project to the working directory inside the container
+COPY /package.json ./
+
+COPY /.env ./
+
+COPY /media ./media
+
+
+COPY /build/index.js ./
+
+# Install PM2 globally
+RUN npm install --global pm2
+
+# Install the Node.js application dependencies
+RUN npm install
+
+
+
+# Expose the desired port for the application
+EXPOSE 4040
+
+# Start the application
+CMD ["node", "index.js"]
