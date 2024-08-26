@@ -9,7 +9,7 @@ COPY /package.json ./
 
 COPY /.env ./
 
-COPY /media ./media
+# COPY /media ./media
 
 
 COPY /build/index.js ./
