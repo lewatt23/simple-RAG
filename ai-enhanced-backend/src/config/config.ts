@@ -23,6 +23,9 @@ export const config = {
   DOMAIN: String(process.env.DOMAIN),
   MAIN: String(process.env.MAIN),
   NODE_ENV: String(process.env.NODE_ENV),
+  OPENAI_API_KEY: String(process.env.OPENAI_API_KEY),
+  PINECONE_API_KEY: String(process.env.PINECONE_API_KEY),
+  PINECODE_INDEX: String(process.env.PINECONE_INDEX),
 };
 
 export default config;

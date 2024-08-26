@@ -83,7 +83,17 @@
 					"required": true,
 					"content": {
 						"application/json": {
-							"schema": {}
+							"schema": {
+								"properties": {
+									"question": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"question"
+								],
+								"type": "object"
+							}
 						}
 					}
 				}
