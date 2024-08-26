@@ -1,33 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { Bot, Upload, FileText, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Send, FileText, Bot, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { apiUrl } from "@/lib/utils";
 
 interface Message {
   role: "user" | "ai";
   content: string;
-  documentChunks?: Array<{ text: string; confidence: number }>;
+  documentChunks?: {
+    text: string;
+    confidence: number;
+  }[];
 }
 
 const sampleConversation: Message[] = [
-  {
-    role: "ai",
-    content: "Hello! I'm your AI assistant. How can I help you today?",
-  },
-  {
-    role: "user",
-    content:
-      "Hi! I'm working on a project about climate change. Can you help me understand its main causes?",
-  },
-  {
-    role: "ai",
-    content:
-      "Of course! The main causes of climate change are:\n\n1. Greenhouse gas emissions, primarily from burning fossil fuels\n2. Deforestation and land-use changes\n3. Industrial processes and agriculture\n4. Increased livestock farming\n5. Use of fertilizers containing nitrogen\n\nWould you like me to elaborate on any of these points?",
-  },
+  { role: "ai", content: "Hello! How can I assist you today?" },
 ];
 
 export default function Component() {
@@ -39,6 +30,8 @@ export default function Component() {
   }>({});
   const [processingFiles, setProcessingFiles] = useState<string[]>([]);
 
+  const [isAiThinking, setIsAiThinking] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setMessages(sampleConversation);
@@ -47,77 +40,108 @@ export default function Component() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (event.target.files) {
       const newFiles = Array.from(event.target.files);
       setUploadedFiles([...uploadedFiles, ...newFiles]);
 
-      newFiles.forEach((file) => {
+      for (const file of newFiles) {
         setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
         setProcessingFiles((prev) => [...prev, file.name]);
 
-        // Simulate upload progress
-        const interval = setInterval(() => {
-          setUploadProgress((prev) => {
-            const newProgress = Math.min((prev[file.name] || 0) + 10, 100);
-            return { ...prev, [file.name]: newProgress };
-          });
-        }, 500);
+        const formData = new FormData();
+        formData.append("file", file);
 
-        // Simulate processing completion
-        setTimeout(() => {
-          clearInterval(interval);
-          setProcessingFiles((prev) => prev.filter((f) => f !== file.name));
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "user",
-              content: `Uploaded and processed file: ${file.name}`,
-            },
-            {
-              role: "ai",
-              content: `I've processed the file ${file.name}. You can now ask questions about its contents.`,
-            },
-          ]);
-        }, 5000);
-      });
+        try {
+          // Simulate upload progress (for UI purposes)
+          const interval = setInterval(() => {
+            setUploadProgress((prev) => {
+              const newProgress = Math.min((prev[file.name] || 0) + 10, 100);
+              return { ...prev, [file.name]: newProgress };
+            });
+          }, 500);
+
+          // Make API call to upload the file
+          const response = await fetch(`${apiUrl}/chat/upload`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            clearInterval(interval);
+            setProcessingFiles((prev) => prev.filter((f) => f !== file.name));
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "user",
+                content: `Uploaded and processed file: ${file.name}`,
+              },
+              {
+                role: "ai",
+                content: `I've processed the file ${file.name}. You can now ask questions about its contents.`,
+              },
+            ]);
+          } else {
+            throw new Error("File upload failed");
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+        }
+      }
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputMessage.trim() !== "") {
       const newMessages = [
         ...messages,
         { role: "user", content: inputMessage },
       ];
+      setIsAiThinking(true);
       setMessages(newMessages);
       setInputMessage("");
 
-      // Simulate AI response with document chunks and confidence scores
-      setTimeout(() => {
-        setMessages([
-          ...newMessages,
-          {
-            role: "ai",
-            content:
-              "Based on the documents you've uploaded, here's what I found:",
-            documentChunks: [
-              {
-                text: "Climate change is primarily caused by greenhouse gas emissions.",
-                confidence: 0.95,
-              },
-              {
-                text: "Deforestation contributes significantly to climate change.",
-                confidence: 0.87,
-              },
-              {
-                text: "Industrial processes are a major source of greenhouse gases.",
-                confidence: 0.92,
-              },
-            ],
+      try {
+        // Make API call to send the message
+        const response = await fetch(`${apiUrl}/chat/ask`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        ]);
-      }, 1500);
+          body: JSON.stringify({ question: inputMessage }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // console.log("AI response:", data);
+          const processedChunks = data.documentChunks?.map((chunk: any) => {
+            const text = chunk.pageContent.replaceAll("\n", " ");
+            const confidence = chunk.confidence || 0;
+            return { text, confidence };
+          });
+
+          console.log("Processed chunks:", processedChunks);
+          // Assuming the API response contains the answer and document chunks
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "ai",
+              content: data.answer,
+              documentChunks: processedChunks || [],
+            },
+          ]);
+          setIsAiThinking(false);
+        } else {
+          throw new Error("Failed to fetch the AI response");
+          setIsAiThinking(false);
+        }
+      } catch (error) {
+        console.error("Error fetching AI response:", error);
+        setIsAiThinking(false);
+      }
     }
   };
 
@@ -171,7 +195,11 @@ export default function Component() {
                   <p className="font-semibold">Relevant Document Chunks:</p>
                   {message.documentChunks.map((chunk, i) => (
                     <div key={i} className="mt-1">
-                      <p>{chunk.text}</p>
+                      <p>
+                        {chunk.text.length > 100
+                          ? chunk.text.slice(0, 80) + "..."
+                          : chunk.text}
+                      </p>
                       <Progress
                         value={chunk.confidence * 100}
                         className="h-1 mt-1"
@@ -186,6 +214,12 @@ export default function Component() {
             </span>
           </div>
         ))}
+        {isAiThinking && (
+          <div className="flex items-center text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            Thinking...
+          </div>
+        )}
       </ScrollArea>
 
       {(uploadedFiles.length > 0 || processingFiles.length > 0) && (

@@ -68,7 +68,20 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "string"
+									"properties": {
+										"documentChunks": {
+											"items": {},
+											"type": "array"
+										},
+										"answer": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"documentChunks",
+										"answer"
+									],
+									"type": "object"
 								}
 							}
 						}

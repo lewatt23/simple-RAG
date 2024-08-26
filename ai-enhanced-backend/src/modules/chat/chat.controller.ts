@@ -66,8 +66,6 @@ export class ChatController extends Controller {
 
     const splits = await textSplitter.splitDocuments(docs);
 
-    console.log('splits', splits);
-
     // pincode setup
 
     const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
@@ -75,16 +73,15 @@ export class ChatController extends Controller {
       maxConcurrency: 5,
     });
 
-    console.log('called  after vectorStore.fromDocuments');
-
     await vectorStore.addDocuments(splits);
 
     return `File ${file.originalname} uploaded successfully.`;
   }
 
   @Post('ask')
-  public async askQuestion(@Body() body: { question: string }): Promise<string> {
-    // Replace with your actual question-answering logic
+  public async askQuestion(
+    @Body() body: { question: string },
+  ): Promise<{ answer: string; documentChunks: any[] }> {
     const model = new ChatOpenAI({ model: 'gpt-4o' });
 
     const systemTemplate = [
@@ -118,6 +115,6 @@ export class ChatController extends Controller {
     });
 
     console.log('Question received:', results.answer);
-    return results.answer;
+    return { answer: results.answer, documentChunks: results.context };
   }
 }
