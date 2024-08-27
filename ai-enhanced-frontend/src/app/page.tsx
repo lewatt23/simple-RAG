@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 import { apiUrl } from "@/lib/utils";
 
 interface Message {
@@ -29,6 +31,7 @@ export default function Component() {
     [key: string]: number;
   }>({});
   const [processingFiles, setProcessingFiles] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const [isAiThinking, setIsAiThinking] = useState(false);
 
@@ -55,39 +58,57 @@ export default function Component() {
         formData.append("file", file);
 
         try {
-          // Simulate upload progress (for UI purposes)
-          const interval = setInterval(() => {
-            setUploadProgress((prev) => {
-              const newProgress = Math.min((prev[file.name] || 0) + 10, 100);
-              return { ...prev, [file.name]: newProgress };
-            });
-          }, 500);
+          const xhr = new XMLHttpRequest();
 
-          // Make API call to upload the file
-          const response = await fetch(`${apiUrl}/chat/upload`, {
-            method: "POST",
-            body: formData,
-          });
+          // Track upload progress
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = (event.loaded / event.total) * 100;
+              setUploadProgress((prev) => ({
+                ...prev,
+                [file.name]: percentComplete,
+              }));
+            }
+          };
 
-          if (response.ok) {
-            clearInterval(interval);
-            setProcessingFiles((prev) => prev.filter((f) => f !== file.name));
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "user",
-                content: `Uploaded and processed file: ${file.name}`,
-              },
-              {
-                role: "ai",
-                content: `I've processed the file ${file.name}. You can now ask questions about its contents.`,
-              },
-            ]);
-          } else {
-            throw new Error("File upload failed");
-          }
+          // Set up the request
+          xhr.open("POST", `${apiUrl}/chat/upload`, true);
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              setProcessingFiles((prev) => prev.filter((f) => f !== file.name));
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "user",
+                  content: `Uploaded and processed file: ${file.name}`,
+                },
+                {
+                  role: "ai",
+                  content: `I've processed the file ${file.name}. You can now ask questions about its contents.`,
+                },
+              ]);
+            } else {
+              setError("Failed to upload file, Please try again");
+              setUploadedFiles([]);
+              setProcessingFiles([]);
+            }
+          };
+
+          xhr.onerror = (error) => {
+            console.error("Error uploading file:", error);
+            setError("Failed to upload file, Please try again");
+            setUploadedFiles([]);
+            setProcessingFiles([]);
+          };
+
+          // Send the request with the form data
+          xhr.send(formData);
         } catch (error) {
           console.error("Error uploading file:", error);
+          setError("Failed to upload file, Please try again");
+          setUploadedFiles([]);
+          setProcessingFiles([]);
         }
       }
     }
@@ -104,7 +125,6 @@ export default function Component() {
       setInputMessage("");
 
       try {
-        // Make API call to send the message
         const response = await fetch(`${apiUrl}/chat/ask`, {
           method: "POST",
           headers: {
@@ -116,15 +136,12 @@ export default function Component() {
         if (response.ok) {
           const data = await response.json();
 
-          // console.log("AI response:", data);
           const processedChunks = data.documentChunks?.map((chunk: any) => {
             const text = chunk.pageContent.replaceAll("\n", " ");
             const confidence = chunk.confidence || 0;
             return { text, confidence };
           });
 
-          // console.log("Processed chunks:", processedChunks);
-          // Assuming the API response contains the answer and document chunks
           setMessages((prev) => [
             ...prev,
             {
@@ -135,11 +152,14 @@ export default function Component() {
           ]);
           setIsAiThinking(false);
         } else {
-          throw new Error("Failed to fetch the AI response");
+          setError("Failed to process your message, Please try again");
+
           setIsAiThinking(false);
         }
       } catch (error) {
-        console.error("Error fetching AI response:", error);
+        console.error("Error processing message:", error);
+        setError("Failed to process your message, Please try again");
+
         setIsAiThinking(false);
       }
     }
@@ -158,6 +178,7 @@ export default function Component() {
             onChange={handleFileUpload}
             className="hidden"
             id="file-upload"
+            accept="application/pdf"
             multiple
           />
           <label htmlFor="file-upload">
@@ -171,6 +192,21 @@ export default function Component() {
       </header>
 
       <ScrollArea className="flex-grow p-6">
+        {error && (
+          <Alert variant="destructive" className="relative mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute top-2 right-2 z-10"
+              onClick={() => setError(null)}
+            >
+              <span className="sr-only">Dismiss</span>✕{" "}
+              {/* Or any icon or text you'd like to use */}
+            </Button>
+          </Alert>
+        )}
         {messages.map((message, index) => (
           <div
             key={index}

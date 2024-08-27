@@ -120,6 +120,20 @@ docker run -e PINECONE_API_KEY=your_pinecone_api_key \
 
 This command runs the topic modeling service, which processes documents, performs topic modeling using a Python script, and updates the document metadata in Pinecone.
 
+### Approach and Implementation
+
+In this project, I utilized LangChain on the backend with OpenAI to build a Retrieval-Augmented Generation (RAG) system. LangChain facilitated seamless integration, making it easier to manage tasks like document retrieval and natural language processing.
+Benefits of Using LangChain
+
+- Simplified Integration: Streamlined the connection with OpenAI, reducing development complexity.
+- Modular Design: Allowed easy integration of various components, keeping the codebase clean and maintainable.
+- Scalability: Supported efficient processing of large data volumes and complex queries.
+
+### Challenges Faced
+
+- Confidence Scores: I faced difficulties in extracting reliable confidence scores from the LangChain-OpenAI integration.
+- Python Script: Implementing the Python script for topic modeling took more time than expected due to integration complexities.
+
 ## Troubleshooting
 
 - Port Conflicts: If the ports 3000 (frontend) or 4040 (backend) are already in use on your machine, you'll need to stop the other processes using those ports or change the exposed ports in the docker-compose.yml file.
