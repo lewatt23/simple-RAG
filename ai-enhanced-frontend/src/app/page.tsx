@@ -19,8 +19,12 @@ interface Message {
   }[];
 }
 
-const sampleConversation: Message[] = [
-  { role: "ai", content: "Hello! How can I assist you today?" },
+const initialQuestions = [
+  "What was the last book you read?",
+  "What genre of books do you usually prefer?",
+  "How old are you?",
+  "Do you prefer fiction or non-fiction?",
+  "Which books have influenced you the most?",
 ];
 
 export default function Component() {
@@ -30,89 +34,31 @@ export default function Component() {
   const [uploadProgress, setUploadProgress] = useState<{
     [key: string]: number;
   }>({});
-  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<String[]>([]);
   const [error, setError] = useState<string | null>(null);
-
   const [isAiThinking, setIsAiThinking] = useState(false);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [isInitialQuestionsComplete, setIsInitialQuestionsComplete] =
+    useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMessages(sampleConversation);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (event.target.files) {
-      const newFiles = Array.from(event.target.files);
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
-
-      for (const file of newFiles) {
-        setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
-        setProcessingFiles((prev) => [...prev, file.name]);
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const xhr = new XMLHttpRequest();
-
-          // Track upload progress
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = (event.loaded / event.total) * 100;
-              setUploadProgress((prev) => ({
-                ...prev,
-                [file.name]: percentComplete,
-              }));
-            }
-          };
-
-          // Set up the request
-          xhr.open("POST", `${apiUrl}/chat/upload`, true);
-
-          xhr.onload = () => {
-            if (xhr.status === 200) {
-              setProcessingFiles((prev) => prev.filter((f) => f !== file.name));
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "user",
-                  content: `Uploaded and processed file: ${file.name}`,
-                },
-                {
-                  role: "ai",
-                  content: `I've processed the file ${file.name}. You can now ask questions about its contents.`,
-                },
-              ]);
-            } else {
-              setError("Failed to upload file, Please try again");
-              setUploadedFiles([]);
-              setProcessingFiles([]);
-            }
-          };
-
-          xhr.onerror = (error) => {
-            console.error("Error uploading file:", error);
-            setError("Failed to upload file, Please try again");
-            setUploadedFiles([]);
-            setProcessingFiles([]);
-          };
-
-          // Send the request with the form data
-          xhr.send(formData);
-        } catch (error) {
-          console.error("Error uploading file:", error);
-          setError("Failed to upload file, Please try again");
-          setUploadedFiles([]);
-          setProcessingFiles([]);
+    if (questionIndex < initialQuestions.length) {
+      setMessages((prev) => {
+        // Prevent duplicate messages if questionIndex changes quickly
+        if (
+          prev.some(
+            (message) => message.content === initialQuestions[questionIndex]
+          )
+        ) {
+          return prev;
         }
-      }
+        return [
+          ...prev,
+          { role: "ai", content: initialQuestions[questionIndex] },
+        ];
+      });
     }
-  };
+  }, [questionIndex]);
 
   const handleSendMessage = async () => {
     if (inputMessage.trim() !== "") {
@@ -120,47 +66,59 @@ export default function Component() {
         ...messages,
         { role: "user", content: inputMessage },
       ];
-      setIsAiThinking(true);
       setMessages(newMessages);
       setInputMessage("");
 
-      try {
-        const response = await fetch(`${apiUrl}/chat/ask`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ question: inputMessage }),
-        });
+      // If the user is still answering initial questions
+      if (questionIndex < initialQuestions.length - 1) {
+        setQuestionIndex(questionIndex + 1);
 
-        if (response.ok) {
-          const data = await response.json();
+        setAnswers((prev) => [...prev, inputMessage]);
+      } else if (questionIndex === initialQuestions.length - 1) {
+        setIsInitialQuestionsComplete(true);
+        setQuestionIndex(questionIndex + 1);
 
-          const processedChunks = data.documentChunks?.map((chunk: any) => {
-            const text = chunk.pageContent.replaceAll("\n", " ");
-            const confidence = chunk.confidence || 0;
-            return { text, confidence };
+        let userResponse = "";
+
+        for (let i = 0; i < initialQuestions.length; i++) {
+          userResponse += `${initialQuestions[i]}: ${answers[i]}\n`;
+        }
+
+        // console.log("users", userResponse);
+        // All questions answered, proceed with normal AI response
+        setIsAiThinking(true);
+        try {
+          const response = await fetch(`${apiUrl}/chat/recommendBooks`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ questions: userResponse }),
           });
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "ai",
-              content: data.answer,
-              documentChunks: processedChunks || [],
-            },
-          ]);
-          setIsAiThinking(false);
-        } else {
-          setError("Failed to process your message, Please try again");
+          if (response.ok) {
+            const data = await response.json();
 
+            console.log("data", data.content);
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "ai",
+                content: data.answer,
+              },
+            ]);
+            setIsAiThinking(false);
+          } else {
+            setError("Failed to process your message, Please try again");
+            setIsAiThinking(false);
+          }
+        } catch (error) {
+          console.error("Error processing message:", error);
+          setError("Failed to process your message, Please try again");
           setIsAiThinking(false);
         }
-      } catch (error) {
-        console.error("Error processing message:", error);
-        setError("Failed to process your message, Please try again");
-
-        setIsAiThinking(false);
+      } else {
       }
     }
   };
@@ -173,9 +131,9 @@ export default function Component() {
           <h1 className="text-xl font-bold">AI Research Assistant</h1>
         </div>
         <div>
-          <Input
+          {/* <Input
             type="file"
-            onChange={handleFileUpload}
+            onChange={() => {}}
             className="hidden"
             id="file-upload"
             accept="application/pdf"
@@ -187,7 +145,7 @@ export default function Component() {
                 <Upload className="mr-2 h-4 w-4" /> Upload Documents
               </span>
             </Button>
-          </label>
+          </label> */}
         </div>
       </header>
 
@@ -226,27 +184,6 @@ export default function Component() {
                   {line}
                 </p>
               ))}
-              {message.documentChunks && (
-                <div className="mt-2 text-sm">
-                  <p className="font-semibold">Relevant Document Chunks:</p>
-                  {message.documentChunks.map((chunk, i) => (
-                    <div key={i} className="mt-1">
-                      <p>
-                        {chunk.text.length > 100
-                          ? chunk.text.slice(0, 80) + "..."
-                          : chunk.text}
-                      </p>
-                      <Progress
-                        value={chunk.confidence * 100}
-                        className="h-1 mt-1"
-                      />
-                      <p className="text-xs text-right">
-                        Confidence: {(chunk.confidence * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </span>
           </div>
         ))}
@@ -258,37 +195,11 @@ export default function Component() {
         )}
       </ScrollArea>
 
-      {(uploadedFiles.length > 0 || processingFiles.length > 0) && (
-        <div className="px-6 py-2 bg-muted/50 border-t">
-          <h4 className="text-sm font-semibold">Uploaded Files:</h4>
-          <ul className="list-disc list-inside">
-            {uploadedFiles.map((file, index) => (
-              <li key={index} className="text-sm flex items-center">
-                <FileText className="inline mr-2 h-4 w-4" />
-                {file.name}
-                {processingFiles.includes(file.name) ? (
-                  <span className="ml-2 flex items-center text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    Processing...
-                  </span>
-                ) : (
-                  <span className="ml-2 text-green-600">Processed</span>
-                )}
-                <Progress
-                  value={uploadProgress[file.name]}
-                  className="h-1 w-24 ml-2"
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <footer className="p-4 border-t">
         <div className="flex items-center space-x-2">
           <Input
             type="text"
-            placeholder="Ask a question about your documents..."
+            placeholder="Ask a Recommendation question..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={(e) => {
@@ -296,9 +207,10 @@ export default function Component() {
                 handleSendMessage();
               }
             }}
-            className="flex-grow"
+            // className="flex-grow"
+            disabled={isAiThinking}
           />
-          <Button onClick={handleSendMessage}>
+          <Button onClick={handleSendMessage} disabled={isAiThinking}>
             <Send className="h-4 w-4 mr-2" />
             Send
           </Button>

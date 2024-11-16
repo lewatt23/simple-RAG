@@ -26,9 +26,7 @@
 						"description": "Ok",
 						"content": {
 							"application/json": {
-								"schema": {
-									"type": "string"
-								}
+								"schema": {}
 							}
 						}
 					}
@@ -48,10 +46,18 @@
 									"file": {
 										"type": "string",
 										"format": "binary"
+									},
+									"title": {
+										"type": "string"
+									},
+									"description": {
+										"type": "string"
 									}
 								},
 								"required": [
-									"file"
+									"file",
+									"title",
+									"description"
 								]
 							}
 						}
@@ -59,9 +65,77 @@
 				}
 			}
 		},
-		"/chat/ask": {
+		"/chat/getDocuments": {
+			"get": {
+				"operationId": "GetDocuments",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Chat"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/chat/recommendBooks": {
 			"post": {
 				"operationId": "AskQuestion",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"answer": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"answer"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Chat"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"questions": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"questions"
+								],
+								"type": "object"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/chat/askQuestionAboutBook": {
+			"post": {
+				"operationId": "AskQuestionAboutBook",
 				"responses": {
 					"200": {
 						"description": "Ok",
@@ -98,11 +172,15 @@
 						"application/json": {
 							"schema": {
 								"properties": {
+									"title": {
+										"type": "string"
+									},
 									"question": {
 										"type": "string"
 									}
 								},
 								"required": [
+									"title",
 									"question"
 								],
 								"type": "object"
